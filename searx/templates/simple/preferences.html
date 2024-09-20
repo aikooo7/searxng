@@ -181,6 +181,9 @@
       {%- include 'simple/preferences/safesearch.html' -%}
     {%- endif -%}
     {%- include 'simple/preferences/tokens.html' -%}
+    {% if 'spellcheck' not in locked_preferences %}
+      {%- include 'simple/preferences/spellcheck.html' -%}
+    {%- endif -%}
     {{- plugin_preferences('general') -}}
 
 

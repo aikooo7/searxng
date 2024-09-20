@@ -21,6 +21,7 @@ import typing
 import urllib
 import urllib.parse
 from urllib.parse import urlencode, urlparse, unquote
+from spellchecker import SpellChecker
 
 import warnings
 import httpx
@@ -234,6 +235,17 @@ def code_highlighter(codelines, language=None):
     html_code = html_code + highlight(tmp_code, lexer, formatter)
 
     return html_code
+
+
+def spellcheck(query: str, user_language: str):
+    spell = SpellChecker(language=user_language)
+    spellcheck_list = query.split(' ')
+    spellcheck_list = [x for x in spellcheck_list if x != '']
+    has_misspelled_words = bool(spell.unknown(spellcheck_list))
+    for word, i in zip(spellcheck_list, range(0, len(spellcheck_list))):
+        if word != '':
+            spellcheck_list[i] = spell.correction(word) if spell.correction(word) is not None else ''
+    return ' '.join(spellcheck_list), has_misspelled_words
 
 
 def get_result_template(theme_name: str, template_name: str):
@@ -738,6 +750,11 @@ def search():
             result_container.corrections,
         )
     )
+    spellcheck_query, has_misspelled_words = '', False
+    if sxng_request.preferences.get_value("spellcheck") == "1" and search.search_query.lang[0:2] in SpellChecker.languages():
+        spellcheck_query, has_misspelled_words = spellcheck(
+            request.form['q'], user_language=search.search_query.lang[0:2]
+        )
 
     # engine_timings: get engine response times sorted from slowest to fastest
     engine_timings = sorted(result_container.get_timings(), reverse=True, key=lambda e: e.total)
@@ -989,6 +1006,7 @@ def preferences():
         current_locale = sxng_request.preferences.get_value("locale"),
         image_proxy = image_proxy,
         engines_by_category = engines_by_category,
+        spellcheck = sxng_request.preferences.get_value("spellcheck"),
         stats = stats,
         max_rate95 = max_rate95,
         reliabilities = reliabilities,
